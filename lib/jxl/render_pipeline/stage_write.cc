@@ -410,17 +410,17 @@ class WriteToOutputStage : public RenderPipelineStage {
     } else if (out.num_channels_ == 3) {
       for (size_t i = 0; i < len; i += Lanes(d)) {
         StoreInterleaved3(
-            MakeUnsigned<T>(LoadU(d, &input[0][i]), xstart + i, ypos, mul),
+            MakeUnsigned<T>(LoadU(d, &input[2][i]), xstart + i, ypos, mul),
             MakeUnsigned<T>(LoadU(d, &input[1][i]), xstart + i, ypos, mul),
-            MakeUnsigned<T>(LoadU(d, &input[2][i]), xstart + i, ypos, mul), du,
+            MakeUnsigned<T>(LoadU(d, &input[0][i]), xstart + i, ypos, mul), du,
             &output[3 * i]);
       }
     } else if (out.num_channels_ == 4) {
       for (size_t i = 0; i < len; i += Lanes(d)) {
         StoreInterleaved4(
-            MakeUnsigned<T>(LoadU(d, &input[0][i]), xstart + i, ypos, mul),
-            MakeUnsigned<T>(LoadU(d, &input[1][i]), xstart + i, ypos, mul),
             MakeUnsigned<T>(LoadU(d, &input[2][i]), xstart + i, ypos, mul),
+            MakeUnsigned<T>(LoadU(d, &input[1][i]), xstart + i, ypos, mul),
+            MakeUnsigned<T>(LoadU(d, &input[0][i]), xstart + i, ypos, mul),
             MakeUnsigned<T>(LoadU(d, &input[3][i]), xstart + i, ypos, mul), du,
             &output[4 * i]);
       }
@@ -452,18 +452,18 @@ class WriteToOutputStage : public RenderPipelineStage {
       }
     } else if (out.num_channels_ == 3) {
       for (size_t i = 0; i < len; i += Lanes(d)) {
-        auto v0 = LoadU(d, &input[0][i]);
+        auto v0 = LoadU(d, &input[2][i]);
         auto v1 = LoadU(d, &input[1][i]);
-        auto v2 = LoadU(d, &input[2][i]);
+        auto v2 = LoadU(d, &input[0][i]);
         StoreInterleaved3(BitCast(du, DemoteTo(df16, v0)),
                           BitCast(du, DemoteTo(df16, v1)),
                           BitCast(du, DemoteTo(df16, v2)), du, &output[3 * i]);
       }
     } else if (out.num_channels_ == 4) {
       for (size_t i = 0; i < len; i += Lanes(d)) {
-        auto v0 = LoadU(d, &input[0][i]);
+        auto v0 = LoadU(d, &input[2][i]);
         auto v1 = LoadU(d, &input[1][i]);
-        auto v2 = LoadU(d, &input[2][i]);
+        auto v2 = LoadU(d, &input[0][i]);
         auto v3 = LoadU(d, &input[3][i]);
         StoreInterleaved4(BitCast(du, DemoteTo(df16, v0)),
                           BitCast(du, DemoteTo(df16, v1)),
@@ -487,13 +487,13 @@ class WriteToOutputStage : public RenderPipelineStage {
       }
     } else if (out.num_channels_ == 3) {
       for (size_t i = 0; i < len; i += Lanes(d)) {
-        StoreInterleaved3(LoadU(d, &input[0][i]), LoadU(d, &input[1][i]),
-                          LoadU(d, &input[2][i]), d, &output[3 * i]);
+        StoreInterleaved3(LoadU(d, &input[2][i]), LoadU(d, &input[1][i]),
+                          LoadU(d, &input[0][i]), d, &output[3 * i]);
       }
     } else {
       for (size_t i = 0; i < len; i += Lanes(d)) {
-        StoreInterleaved4(LoadU(d, &input[0][i]), LoadU(d, &input[1][i]),
-                          LoadU(d, &input[2][i]), LoadU(d, &input[3][i]), d,
+        StoreInterleaved4(LoadU(d, &input[2][i]), LoadU(d, &input[1][i]),
+                          LoadU(d, &input[0][i]), LoadU(d, &input[3][i]), d,
                           &output[4 * i]);
       }
     }

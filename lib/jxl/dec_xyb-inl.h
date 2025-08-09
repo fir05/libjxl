@@ -311,7 +311,7 @@ inline HWY_MAYBE_UNUSED Status FastXYBTosRGB8(const float* input[4],
       int16x4_t a16_right = vqmovn_s32(vcvtq_n_s32_f32(a_f32_right, 8));
       uint8x8_t a8 = vqmovun_s16(vcombine_s16(a16_left, a16_right));
       uint8_t* buf = output + 4 * x;
-      uint8x8x4_t data = {r8, g8, b8, a8};
+      uint8x8x4_t data = {b8, g8, r8, a8};
       if (n >= 8) {
         vst4_u8(buf, data);
       } else {
@@ -321,7 +321,7 @@ inline HWY_MAYBE_UNUSED Status FastXYBTosRGB8(const float* input[4],
       }
     } else {
       uint8_t* buf = output + 3 * x;
-      uint8x8x3_t data = {r8, g8, b8};
+      uint8x8x3_t data = {b8, g8, r8};
       if (n >= 8) {
         vst3_u8(buf, data);
       } else {

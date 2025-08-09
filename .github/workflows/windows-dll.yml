@@ -1,0 +1,119 @@
+name: Windows DLL build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - v*.*.x
+
+permissions:
+  contents: read
+
+jobs:
+  build_windows_dll:
+    name: Windows DLL (${{ matrix.triplet }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - triplet: x64-windows
+            arch: '-A x64'
+          - triplet: x86-windows
+            arch: '-A Win32'
+    env:
+      VCPKG_VERSION: '2023.12.12'
+      VCPKG_ROOT: vcpkg
+      VCPKG_DISABLE_METRICS: 1
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout the source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: true
+          fetch-depth: 2
+
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        id: cache-vcpkg
+        with:
+          path: vcpkg
+          key: windows-dll-${{ runner.os }}-vcpkg-${{ env.VCPKG_VERSION }}-${{ matrix.triplet }}
+
+      - name: Download vcpkg
+        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          C:\msys64\usr\bin\wget.exe -nv `
+            https://github.com/microsoft/vcpkg/archive/refs/tags/${{ env.VCPKG_VERSION }}.zip `
+            -O vcpkg.zip
+
+      - name: Bootstrap vcpkg
+        if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -x
+          unzip -q vcpkg.zip
+          rm -rf ${VCPKG_ROOT}
+          mv vcpkg-${VCPKG_VERSION} ${VCPKG_ROOT}
+          ${VCPKG_ROOT}/bootstrap-vcpkg.sh
+
+      - name: Install libraries with vcpkg
+        shell: bash
+        run: |
+          set -x
+          ${VCPKG_ROOT}/vcpkg --triplet ${{ matrix.triplet }} install \
+            giflib \
+            libjpeg-turbo \
+            libpng \
+            libwebp \
+            pkgconf \
+          #
+
+      - name: Configure (shared libs only)
+        shell: bash
+        run: |
+          set -x
+          mkdir build
+          cmake -Bbuild -H. ${{ matrix.arch }} \
+            -DBUILD_SHARED_LIBS=ON \
+            -DJPEGXL_STATIC=OFF \
+            -DJPEGXL_ENABLE_TOOLS=OFF \
+            -DBUILD_TESTING=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=`pwd`/prefix \
+            -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake \
+            -DJPEGXL_ENABLE_JPEGLI_LIBJPEG=OFF \
+            -DJPEGXL_ENABLE_OPENEXR=OFF \
+            -DJPEGXL_ENABLE_PLUGINS=OFF \
+            -DJPEGXL_ENABLE_TCMALLOC=OFF \
+            -DJPEGXL_ENABLE_VIEWERS=OFF \
+            -DJPEGXL_ENABLE_DEVTOOLS=OFF \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
+          #
+
+      - name: Build
+        shell: bash
+        run: |
+          set -x
+          cmake --build build --config Release --target jxl jxl_dec
+
+      - name: Install
+        shell: bash
+        run: |
+          set -x
+          cmake --build build --config Release --target install
+
+      - name: Upload DLL artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jxl-dll-${{ matrix.triplet }}
+          path: |
+            prefix/bin/jxl*.dll
+            build/Release/jxl*.dll
+          compression-level: 0
